@@ -1,0 +1,8 @@
+﻿# Create your own list of shops and addresses - ChatGPT Prompt:
+Generate a CSV list of 30 independent grocery shops, corner shops, and newsagents located near "###Your Place###". Do not include major supermarkets like Tesco or Sainsbury's. Only include shops where the full address is available. The CSV format should be "Shop Name,Address". Ensure the list includes small, local, independent shops such as Best-One, Premier, Londis, and other similar establishments with their respective addresses. Exclude shops without a valid or specific address.
+Shop Name, Address
+Sunny's Grocers,"12 Market Lane, Willowville, WV12 3AB"
+Corner Essentials,"5 High Street, Oakford, OF45 7CD"
+The Local Basket,"22 Meadow Road, Pinehurst, PH10 9XY"
+Village Provisions,"8 Church Street, Maplewood, MW18 4EF"
+Harbour Grocers,"15 Seaview Terrace, Baycliff, BC23 5GH"
