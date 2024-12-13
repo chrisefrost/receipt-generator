@@ -24,8 +24,7 @@ def pick_date(prompt):
     tk.Button(date_window, text="Select", command=select_date).pack(pady=20)
     root.mainloop()
     return cal.get_date()
-
-# Step 1: Gather inputs from the user
+    # Step 1: Gather inputs from the user
 def get_inputs():
     print("Please select the start date.")
     start_date = pick_date("Select Start Date")
@@ -34,15 +33,27 @@ def get_inputs():
     end_date = pick_date("Select End Date")
 
     stores_csv = "Data/stores.csv"
-    items_csv = "Data/items.csv"
-    return start_date, end_date, stores_csv, items_csv
+    item_lists = {
+        "christmas.csv": "Christmas",
+        "easter.csv": "Easter",
+        "cleaning.csv": "Cleaning",
+        "grocery.csv": "Grocery"
+    }
+
+    include_item_lists = {}
+    for item_list, name in item_lists.items():
+        include = input(f"Include {name} items (y/n)? ")
+        include_item_lists[item_list] = include.lower() == "y"
+
+    return start_date, end_date, stores_csv, include_item_lists
 
 # Step 2: Load data from CSVs
-def load_csv_data(stores_csv, items_csv):
+def load_csv_data(stores_csv, include_item_lists):
     stores = []
     items = []
+    all_items = []
 
-    with open(stores_csv, mode='r') as file:
+    with open(stores_csv, mode='r', encoding='utf-8-sig') as file:
         reader = csv.reader(file)
         next(reader)  # Skip the header row
         for row in reader:
@@ -53,32 +64,46 @@ def load_csv_data(stores_csv, items_csv):
                 "shop_address": shop_address.strip()
             })
 
-    with open(items_csv, mode='r') as file:
-        reader = csv.reader(file)
-        next(reader)  # Skip header
-        for row in reader:
-            item_name = row[0]
-            unit_price = row[1]
-            items.append({
-                "item_name": item_name.strip(),
-                "unit_price": float(unit_price.strip())
-            })
+    for item_list, include in include_item_lists.items():
+        if include:
+            temp_items = []
+            try:
+                with open(f"Data/{item_list}", mode='r', encoding='utf-8-sig') as file:
+                    reader = csv.reader(file)
+                    next(reader)  # Skip header
+                    for row in reader:
+                        item_name = row[0]
+                        unit_price = row[1]
+                        temp_items.append({
+                            "item_name": item_name.strip(),
+                            "unit_price": float(unit_price.strip())
+                        })
+                all_items.append(temp_items)
+            except FileNotFoundError:
+                print(f"Warning: File Data/{item_list} not found. Skipping.")
+
+    if not all_items:
+        print("No item lists selected. Exiting.")
+        exit()
+    
+    for item_list in all_items:
+        items.extend(item_list)
 
     return stores, items
-
-# Step 3: Randomly generate receipts
+    # Step 3: Randomly generate receipts
 def generate_random_receipt_data(start_date, end_date, stores, items):
     date_format = "%d-%m-%y"
     start = datetime.strptime(start_date, date_format)
     end = datetime.strptime(end_date, date_format)
-    
+
     receipts = []
     num_receipts = int(input("How many receipts would you like to generate? "))
     for _ in range(num_receipts):
         store = random.choice(stores)
         date = start + timedelta(days=random.randint(0, (end - start).days))
-        receipt_number = random.randint(10000, 99999999)  # Generate 5 to 8 digit receipt number
-        selected_items = random.sample(items, k=random.randint(3, 12))
+        receipt_number = random.randint(10000, 99999999)
+        selected_items = random.sample(items, k=random.randint(1, min(len(items), 12)))
+
         receipt_items = []
         total = 0
 
@@ -116,10 +141,9 @@ def generate_random_receipt_data(start_date, end_date, stores, items):
             "show_receipt_number": random.choice([True, False]),
             "show_receipt_label": random.choice([True, False])
         })
-    
-    return receipts
 
-# Step 4: Render receipts to JPG
+    return receipts
+    # Step 4: Render receipts to JPG
 def render_receipts(receipts):
     fonts = ["receipt1.ttf", "receipt2.ttf", "receipt3.ttf", "receipt4.ttf", "receipt5.ttf", "receipt6.ttf", "receipt7.otf", "receipt8.otf", "receipt9.otf", "receipt10.otf"]
 
@@ -207,7 +231,7 @@ def render_receipts(receipts):
 
 # Main execution
 if __name__ == "__main__":
-    start_date, end_date, stores_csv, items_csv = get_inputs()
-    stores, items = load_csv_data(stores_csv, items_csv)
+    start_date, end_date, stores_csv, include_item_lists = get_inputs()
+    stores, items = load_csv_data(stores_csv, include_item_lists)
     receipts = generate_random_receipt_data(start_date, end_date, stores, items)
     render_receipts(receipts)
