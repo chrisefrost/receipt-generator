@@ -145,32 +145,54 @@ def generate_random_receipt_data(start_date, end_date, stores, items):
     return receipts
     # Step 4: Render receipts to JPG
 def render_receipts(receipts):
-    fonts = ["receipt1.ttf", "receipt2.ttf", "receipt3.ttf", "receipt4.ttf", "receipt5.ttf", "receipt6.ttf", "receipt7.otf", "receipt8.otf", "receipt9.otf", "receipt10.otf"]
+    fonts = [
+        "receipt1.ttf", "receipt2.ttf", "receipt3.ttf", "receipt4.ttf",
+        "receipt5.ttf", "receipt6.ttf", "receipt7.ttf", "receipt8.ttf",
+        "receipt9.ttf", "receipt10.ttf", "receipt11.ttf", "receipt12.ttf",
+        "receipt13.ttf", "receipt14.ttf", "receipt15.ttf", "receipt16.ttf",
+        "receipt17.otf", "receipt18.otf", "receipt19.otf", "receipt20.otf", "receipt21.otf"
+    ]
 
     for i, receipt in enumerate(receipts):
         font_path = "Fonts/" + random.choice(fonts)
-        font_size_shop = random.randint(10, 14)
+        font_size_shop = random.randint(16, 20)
         font_size_items = 12
         line_spacing = random.randint(18, 25)
         text_alignment_shop = random.choice(["left", "center"])
         address_multiline = random.choice([True, False])
         receipt_number_position = random.choice(["top", "bottom"])
 
-        image = Image.new("RGB", (400, 600), "white")
+        # Randomly decide whether to show a border
+        show_border = random.choice([True, False])
+        border_char = random.choice(["*", "#", "-", ".", "="]) if show_border else None
+
+        # Generate a random background color in the range #ffffff to #f5f5f5
+        bg_shade = random.randint(245, 255)
+        bg_color = (bg_shade, bg_shade, bg_shade)
+
+        # Fixed image size
+        image_width = 400
+        image_height = 600
+        image = Image.new("RGB", (image_width, image_height), bg_color)
         draw = ImageDraw.Draw(image)
 
         try:
             font_shop = ImageFont.truetype(font_path, font_size_shop)
             font_items = ImageFont.truetype(font_path, font_size_items)
+
+            # Test if the '£' symbol can be rendered by measuring its size
+            supports_pound = draw.textlength("£", font=font_items) > 0
         except Exception as e:
             print(f"Font error: {e}. Default font used.")
             font_shop = font_items = ImageFont.load_default()
+            supports_pound = False
 
-        y = 20
+        y = 10
         x_left = 10
-        x_center = 200
+        x_center = image_width // 2
 
         def draw_text(text, y_pos, alignment="left", bold=False):
+            """Render text to the final image."""
             font = font_shop if bold else font_items
             if alignment == "left":
                 draw.text((x_left, y_pos), text, font=font, fill="black")
@@ -178,14 +200,27 @@ def render_receipts(receipts):
                 text_width = draw.textlength(text, font=font)
                 draw.text((x_center - text_width // 2, y_pos), text, font=font, fill="black")
 
+        # Select a consistent quantity format for this receipt
+        quantity_format = random.choice([
+            "x{units}",  # x2
+            "{units}x",  # 2x
+            "{units} -",  # 2 -
+            "{units} @"  # 2 @
+        ])
+
+        # Add border at the top
+        if border_char:
+            draw_text(border_char * (image_width // 10), y, alignment="center", bold=True)
+            y += line_spacing
+
         # Receipt number at the top (if applicable)
         if receipt_number_position == "top" and receipt['show_receipt_number']:
             receipt_text = f"Receipt#: {receipt['receipt_number']}" if receipt['show_receipt_label'] else f"{receipt['receipt_number']}"
-            draw_text(receipt_text, y, alignment="left")
+            draw_text(receipt_text, y)
             y += line_spacing * random.uniform(0.8, 1.2)
 
         # Shop name
-        draw_text(f"{receipt['shop_name']}", y, alignment=text_alignment_shop, bold=True)
+        draw_text(receipt['shop_name'], y, alignment=text_alignment_shop, bold=True)
         y += line_spacing
 
         # Address with random multiline option
@@ -198,36 +233,48 @@ def render_receipts(receipts):
             y += line_spacing
 
         # Date
-        draw_text(receipt['date'], y, alignment="left")
-        y += line_spacing * random.uniform(1.2, 1.8)
+        draw_text(receipt['date'], y)
+        y += line_spacing
 
         # Items
         draw_text("Items:", y)
         y += line_spacing
         for item in receipt['items']:
-            draw_text(f"{item['item_name']:20} x{item['units']} \u00A3{item['cost']:.2f}", y, alignment="left")
+            cost_display = f"£{item['cost']:.2f}" if supports_pound else f"{item['cost']:.2f}"
+            draw_text(
+                f"{item['item_name']:20} {quantity_format.format(units=item['units'])} {cost_display}", y
+            )
             y += line_spacing
 
         # Total and VAT
         y += line_spacing * 1.5
-        draw_text(f"Total: \u00A3{receipt['total']:.2f}", y, alignment="left", bold=True)
+        total_display = f"£{receipt['total']:.2f}" if supports_pound else f"{receipt['total']:.2f}"
+        draw_text(f"Total: {total_display}", y, bold=True)
         y += line_spacing
-        draw_text(f"VAT (20%): \u00A3{receipt['vat']:.2f}", y, alignment="left")
+        vat_display = f"£{receipt['vat']:.2f}" if supports_pound else f"{receipt['vat']:.2f}"
+        draw_text(f"VAT (20%): {vat_display}", y)
+        y += line_spacing
 
         # Thank-you message
         if receipt['thank_you_message']:
-            y += line_spacing * 1.5
-            draw_text(receipt['thank_you_message'], y, alignment="left")
+            draw_text(receipt['thank_you_message'], y)
+            y += line_spacing
 
         # Receipt number at the bottom (if applicable)
         if receipt_number_position == "bottom" and receipt['show_receipt_number']:
-            y += line_spacing * 1.5
             receipt_text = f"Receipt#: {receipt['receipt_number']}" if receipt['show_receipt_label'] else f"{receipt['receipt_number']}"
-            draw_text(receipt_text, y, alignment="left")
+            draw_text(receipt_text, y)
+            y += line_spacing
+
+        # Add border at the bottom
+        if border_char:
+            draw_text(border_char * (image_width // 10), y, alignment="center", bold=True)
 
         # Save image
         image.save(f"Generated/{receipt['receipt_number']}.jpg")
-        print(f"Receipt {i+1} saved as {receipt['receipt_number']}.jpg")
+        print(f"Receipt {i + 1} saved as {receipt['receipt_number']}.jpg")
+
+
 
 # Main execution
 if __name__ == "__main__":
